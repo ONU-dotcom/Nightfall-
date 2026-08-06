@@ -1,0 +1,389 @@
+-- =====================================================================
+-- [[                     ONU 1 - CORE SYSTEM CONFIG                  ]]
+-- =====================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Global Environment State Registers
+_G.ESP_Enabled = false
+_G.Monster_ESP_Enabled = false
+_G.Speed_Enabled = false
+_G.AutoFarm_Trees_Enabled = false
+
+_G.Target_Speed = 55 
+_G.Active_ESP_Boxes = {}
+_G.SpeedConnection = nil
+
+-- Remotes Index Cache
+_G.AxeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("AxeSwingEvent")
+-- =====================================================================
+-- [[             PART 2 - SECTION A: SCANNER FUNCTIONS               ]]
+-- =====================================================================
+
+-- 1. Optimized Clean Item Finder Engine
+function _G.locateGameTargets()
+    local resources = {}
+    local monsters = {}
+    local planes = {}
+    
+    local workspaceChildren = game:GetService("Workspace"):GetDescendants()
+    
+    for _, obj in ipairs(workspaceChildren) do
+        -- Blueprint Filter Pass (Ignores ghost campfire frames)
+        local isBlueprint = false
+        local current = obj.Parent
+        while current and current ~= game:GetService("Workspace") do
+            local parentName = current.Name:lower()
+            if parentName:find("blueprint") or parentName:find("camp") or parentName:find("fire") then
+                isBlueprint = true
+                break
+            end
+            current = current.Parent
+        end
+        
+        if not isBlueprint then
+            local name = obj.Name
+            
+            -- Plane Identification Node
+            if name == "Plane" or name:find("Plane") then
+                if obj:IsA("Model") or obj:IsA("BasePart") then
+                    table.insert(planes, obj)
+                end
+            
+            -- Solid Resource Item Sorting Node
+            elseif obj:IsA("BasePart") or obj:IsA("Model") then
+                local isRock = name:find("Rock")
+                local isStick = name:find("Sticks") or name:find("Stick")
+                local isCherry = name:find("Cherry") or name:find("Berry")
+                
+                if isRock or isStick or isCherry then
+                    local itemType = "Cherry"
+                    if isRock then itemType = "Rock" end
+                    if isStick then itemType = "Stick" end
+                    
+                    table.insert(resources, { Instance = obj, Type = itemType })
+                end
+            end
+        end
+    end
+    
+    -- Night Monsters Folder Streaming Extraction (Targets Feral_Active directly)
+    local monstersFolder = game:GetService("Workspace"):FindFirstChild("Monsters") or game:GetService("Workspace"):FindFirstChild("Monsters", true)
+    if monstersFolder then
+        for _, creature in ipairs(monstersFolder:GetDescendants()) do
+            if creature.Name == "Feral_Active" or creature:IsA("Humanoid") then
+                local rootModel = creature:IsA("Humanoid") and creature.Parent or creature
+                if rootModel and rootModel.Name ~= "Sheep" and rootModel.Name ~= "Deer" and rootModel.Name ~= LocalPlayer.Name then
+                    table.insert(monsters, rootModel)
+                end
+            end
+        end
+    end
+    
+    return resources, monsters, planes
+end
+
+-- 2. Technical Billboard Overlay Drawing Pipeline
+function _G.applyTrackingESP(instance, color, displayName, useHighlight)
+    if instance:FindFirstChild("ONUE_Label") then return end
+
+    if useHighlight and not instance:FindFirstChild("ONUE_ESP") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ONUE_ESP"
+        highlight.FillColor = color
+        highlight.FillTransparency = 0.4
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0.1
+        highlight.Adornee = instance
+        highlight.Parent = instance
+    end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ONUE_Label"
+    billboard.Size = UDim2.new(0, 130, 0, 30)
+    billboard.AlwaysOnTop = true
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Adornee = instance
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = color
+    textLabel.TextStrokeTransparency = 0.2
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextSize = 13
+    textLabel.Text = displayName
+    textLabel.Parent = billboard
+    
+    billboard.Parent = instance
+    table.insert(_G.Active_ESP_Boxes, {inst = instance, high = instance:FindFirstChild("ONUE_ESP"), bill = billboard})
+end
+
+-- 3. High-Frequency Self-Cleaning Disappear Hook (Disappears immediately when collected)
+function _G.validateActiveTracking()
+    for i = #_G.Active_ESP_Boxes, 1, -1 do
+        local data = _G.Active_ESP_Boxes[i]
+        local shouldClear = false
+        
+        if not data.inst or not data.inst.Parent or not data.inst:IsDescendantOf(game:GetService("Workspace")) then
+            shouldClear = true
+        else
+            local part = data.inst:IsA("BasePart") and data.inst or data.inst:FindFirstChildWhichIsA("BasePart")
+            local hum = data.inst:FindFirstChildOfClass("Humanoid")
+            
+            if hum and hum.Health <= 0 then
+                shouldClear = true
+            elseif part and (part.Transparency >= 0.8 or not part.CanCollide) then
+                shouldClear = true
+            end
+        end
+        
+        if shouldClear then
+            local targetInstance = data.inst
+            if targetInstance then
+                if targetInstance:FindFirstChild("ONUE_ESP") then targetInstance.ONUE_ESP:Destroy() end
+                if targetInstance:FindFirstChild("ONUE_Label") then targetInstance.ONUE_Label:Destroy() end
+            end
+            table.remove(_G.Active_ESP_Boxes, i)
+        end
+    end
+end
+-- =====================================================================
+-- [[               PART 2 - SECTION B: RUNTIME LOOPS                 ]]
+-- =====================================================================
+
+-- CFrame Movement Translation Hook
+function _G.updateSpeedHack()
+    if _G.SpeedConnection then _G.SpeedConnection:Disconnect() end
+    if _G.Speed_Enabled then
+        _G.SpeedConnection = RunService.Heartbeat:Connect(function(deltaTime)
+            local character = LocalPlayer.Character
+            local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+            
+            if humanoid and rootPart and humanoid.MoveDirection.Magnitude > 0 then
+                rootPart.CFrame = rootPart.CFrame + (humanoid.MoveDirection * (_G.Target_Speed - humanoid.WalkSpeed) * deltaTime)
+            end
+        end)
+    end
+end
+
+-- TRUE CONTINUOUS FAST CHOP AT PHYSICS STEP SPEEDS
+task.spawn(function()
+    while true do
+        RunService.Heartbeat:Wait() 
+        
+        if _G.AutoFarm_Trees_Enabled then
+            local character = LocalPlayer.Character
+            local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+            
+            if character then
+                for _, tool in ipairs(character:GetChildren()) do
+                    if tool:IsA("Tool") then tool:SetAttribute("AxeLocalBusyUntil", nil) end
+                end
+            end
+            
+            if rootPart then
+                for _, obj in ipairs(game:GetService("Workspace"):GetDescendants()) do
+                    if obj.Name == "TreeHitbox" and obj:IsA("BasePart") then
+                        local distance = (rootPart.Position - obj.Position).Magnitude
+                        if distance <= 16 then
+                            local current = obj.Parent
+                            local treeModel = nil
+                            while current and current ~= game:GetService("Workspace") do
+                                if current:IsA("Model") and current:GetAttribute("Hitpoints") ~= nil then
+                                    treeModel = current; break
+                                end
+                                current = current.Parent
+                            end
+                            
+                            if treeModel and treeModel:GetAttribute("Broken") ~= true then
+                                local treeId = treeModel:GetAttribute("WorldGenTreeId") or treeModel:GetAttribute("GeneratedTreeId")
+                                if typeof(treeId) == "string" then
+                                    _G.AxeRemote:FireServer(treeId)
+                                    _G.AxeRemote:FireServer(treeId)
+                                    _G.AxeRemote:FireServer(treeId)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Main Display Management Thread Coordinator Loop
+task.spawn(function()
+    while task.wait(0.2) do
+        _G.validateActiveTracking()
+        local itemPool, mobPool, planePool = _G.locateGameTargets()
+        
+        -- Always-On Automatic Plane Text Tracker (NO Blinding Glow Box)
+        for _, plane in ipairs(planePool) do
+            _G.applyTrackingESP(plane, Color3.fromRGB(0, 160, 255), "✈️ Plane", false)
+        end
+        
+        -- Resource Item ESP Processing Lane
+        if _G.ESP_Enabled then
+            for _, data in ipairs(itemPool) do
+                local obj = data.Instance
+                local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                if part and part.Transparency < 0.8 and part.CanCollide then
+                    if data.Type == "Rock" then _G.applyTrackingESP(obj, Color3.fromRGB(160, 160, 160), "🪨 Rock", true)
+                    elseif data.Type == "Stick" then _G.applyTrackingESP(obj, Color3.fromRGB(150, 110, 80), "🪾 Stick", true)
+                    elseif data.Type == "Cherry" then _G.applyTrackingESP(obj, Color3.fromRGB(255, 30, 60), "🍒 Cherry", true) end
+                end
+            end
+        else
+            for i = #_G.Active_ESP_Boxes, 1, -1 do
+                local box = _G.Active_ESP_Boxes[i]
+                if box.inst and not box.inst:FindFirstChildOfClass("Humanoid") and box.inst.Name ~= "Plane" and not box.inst.Name:find("Plane") then
+                    if box.inst:FindFirstChild("ONUE_ESP") then box.inst.ONUE_ESP:Destroy() end
+                    if box.inst:FindFirstChild("ONUE_Label") then box.inst.ONUE_Label:Destroy() end
+                    table.remove(_G.Active_ESP_Boxes, i)
+                end
+            end
+        end
+        
+        -- Night Monster ESP Folder Processing Lane
+        if _G.Monster_ESP_Enabled then
+            for _, mob in ipairs(mobPool) do
+                _G.applyTrackingESP(mob, Color3.fromRGB(255, 10, 20), "👹 Monster", true)
+            end
+        else
+            for i = #_G.Active_ESP_Boxes, 1, -1 do
+                local box = _G.Active_ESP_Boxes[i]
+                if box.inst and box.inst:FindFirstChildOfClass("Humanoid") then
+                    if box.inst:FindFirstChild("ONUE_ESP") then box.inst.ONUE_ESP:Destroy() end
+                    if box.inst:FindFirstChild("ONUE_Label") then box.inst.ONUE_Label:Destroy() end
+                    table.remove(_G.Active_ESP_Boxes, i)
+                end
+            end
+        end
+    end
+end)
+-- =====================================================================
+-- [[             PART 3: THE VOID ECLIPSE FORMAL UI                  ]]
+-- =====================================================================
+
+-- Destroy active UI container duplicates before drawing to prevent screen clutter
+if CoreGui:FindFirstChild("ONU_Interface_Matrix") then
+    CoreGui.ONU_Interface_Matrix:Destroy()
+end
+
+local UIContainer = Instance.new("ScreenGui")
+UIContainer.Name = "ONU_Interface_Matrix"
+UIContainer.ResetOnSpawn = false
+UIContainer.Parent = CoreGui
+
+-- Base Window Frame Panel (Locked Screen Center Configuration with curved edge points)
+local BasePanel = Instance.new("Frame")
+BasePanel.Size = UDim2.new(0, 240, 0, 175) 
+BasePanel.Position = UDim2.new(0.5, -120, 0.5, -87) 
+BasePanel.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- Solid Matte Obsidian Black
+BasePanel.BorderColor3 = Color3.fromRGB(35, 35, 40) 
+BasePanel.BorderSizePixel = 1
+BasePanel.Parent = UIContainer
+
+local BorderCurve = Instance.new("UICorner")
+BorderCurve.CornerRadius = UDim.new(0, 6) 
+BorderCurve.Parent = BasePanel
+
+-- Title Element Top Label Header
+local HeaderLabel = Instance.new("TextLabel")
+HeaderLabel.Size = UDim2.new(1, 0, 0, 35)
+HeaderLabel.BackgroundColor3 = Color3.fromRGB(22, 4, 6) 
+HeaderLabel.BorderSizePixel = 0
+HeaderLabel.Text = "ONU"
+HeaderLabel.Font = Enum.Font.SourceSansBold 
+HeaderLabel.TextSize = 16
+HeaderLabel.TextColor3 = Color3.fromRGB(240, 240, 245) 
+HeaderLabel.Parent = BasePanel
+
+local HeaderCurve = Instance.new("UICorner")
+HeaderCurve.CornerRadius = UDim.new(0, 6)
+HeaderCurve.Parent = HeaderLabel
+
+-- Custom Linear Shift Gradient Consumption Shader Profile
+local ShadingFX = Instance.new("UIGradient")
+ShadingFX.Rotation = 90
+ShadingFX.Color = ColorSequence.new({
+    ColorSequenceKey.new(0, Color3.fromRGB(0, 0, 0)),     
+    ColorSequenceKey.new(1, Color3.fromRGB(160, 10, 20)) 
+})
+ShadingFX.Parent = HeaderLabel
+
+-- Internal Component Layout Sorter Grid
+local ListGrid = Instance.new("UIListLayout")
+ListGrid.Padding = UDim.new(0, 2)
+ListGrid.SortOrder = Enum.SortOrder.LayoutOrder
+ListGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local ControlRack = Instance.new("Frame")
+ControlRack.Size = UDim2.new(1, -14, 1, -43)
+ControlRack.Position = UDim2.new(0, 7, 0, 38)
+ControlRack.BackgroundTransparency = 1
+ControlRack.Parent = BasePanel
+ListGrid.Parent = ControlRack
+
+-- System Formal Button Switch Generator Function
+local function buildFormalSwitch(displayLabel, sortingWeightIndex, toggleFeedbackCallback)
+    local actionBtn = Instance.new("TextButton")
+    actionBtn.Size = UDim2.new(1, 0, 0, 31) 
+    actionBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 12) 
+    actionBtn.BorderColor3 = Color3.fromRGB(25, 25, 25)
+    actionBtn.BorderSizePixel = 1
+    actionBtn.Text = "  " .. displayLabel
+    actionBtn.Font = Enum.Font.SourceSans 
+    actionBtn.TextSize = 13
+    actionBtn.TextColor3 = Color3.fromRGB(160, 160, 160) 
+    actionBtn.TextXAlignment = Enum.TextXAlignment.Left
+    actionBtn.LayoutOrder = sortingWeightIndex
+    
+    local statusIndicator = Instance.new("TextLabel")
+    statusIndicator.Size = UDim2.new(0, 45, 1, 0)
+    statusIndicator.Position = UDim2.new(1, -50, 0, 0)
+    statusIndicator.BackgroundTransparency = 1
+    statusIndicator.Text = "OFF"
+    statusIndicator.Font = Enum.Font.SourceSansBold
+    statusIndicator.TextSize = 12
+    statusIndicator.TextColor3 = Color3.fromRGB(140, 140, 140)
+    statusIndicator.TextXAlignment = Enum.TextXAlignment.Center
+    statusIndicator.Parent = actionBtn
+    
+    local internalStateVar = false
+    actionBtn.MouseButton1Click:Connect(function()
+        internalStateVar = not internalStateVar
+        if internalStateVar then
+            statusIndicator.Text = "ON"
+            statusIndicator.TextColor3 = Color3.fromRGB(0, 220, 100) -- Clean Emerald Green Accent
+            actionBtn.BackgroundColor3 = Color3.fromRGB(16, 22, 18) 
+            actionBtn.BorderColor3 = Color3.fromRGB(30, 50, 35)
+        else
+            statusIndicator.Text = "OFF"
+            statusIndicator.TextColor3 = Color3.fromRGB(140, 140, 140)
+            actionBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+            actionBtn.BorderColor3 = Color3.fromRGB(25, 25, 25)
+        end
+        toggleFeedbackCallback(internalStateVar)
+    end)
+    
+    actionBtn.Parent = ControlRack
+    return actionBtn
+end
+
+-- =====================================================================
+-- [[            FIXED FORMAL COMPONENT DIRECT LINKAGE TREE           ]]
+-- =====================================================================
+buildFormalSwitch("ESP - Rock/Stick/Cherry", 1, function(state) _G.ESP_Enabled = state end)
+buildFormalSwitch("ESP Monsters", 2, function(state) _G.Monster_ESP_Enabled = state end)
+buildFormalSwitch("Speed Hack", 3, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
+buildFormalSwitch("Fast Chop/Attack", 4, function(state) _G.AutoFarm_Trees_Enabled = state end)
+
+
