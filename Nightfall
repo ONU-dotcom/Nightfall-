@@ -119,11 +119,111 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     textLabel.Text = displayName
     textLabel.Parent = billboard
     
+-- =====================================================================
+-- [[             PART 2 - SECTION A: SCANNER FUNCTIONS               ]]
+-- =====================================================================
+
+-- 1. Case-Insensitive Universal Workspace Finder Engine
+function _G.locateGameTargets()
+    local resources = {}
+    local monsters = {}
+    local planes = {}
+    
+    local workspaceChildren = game:GetService("Workspace"):GetDescendants()
+    
+    for _, obj in ipairs(workspaceChildren) do
+        -- Strict Parental Ancestor Blueprint Elimination Pass
+        local isBlueprint = false
+        local current = obj.Parent
+        while current and current ~= game:GetService("Workspace") do
+            local parentName = current.Name:lower()
+            if parentName:find("blueprint") or parentName:find("camp") or parentName:find("fire") then
+                isBlueprint = true
+                break
+            end
+            current = current.Parent
+        end
+        
+        if not isBlueprint then
+            local name = obj.Name:lower() -- Forces lowercase parsing to handle casing changes
+            
+            -- Plane Identification Node
+            if name:find("plane") then
+                if obj:IsA("Model") or obj:IsA("BasePart") then
+                    table.insert(planes, obj)
+                end
+            
+            -- Resource Sorting Node (Case-Insensitive structural matching strings)
+            elseif obj:IsA("BasePart") or obj:IsA("Model") then
+                local isRock = name:find("rock")
+                local isStick = name:find("stick")
+                local isCherry = name:find("cherry") or name:find("berry")
+                
+                if isRock or isStick or isCherry then
+                    local itemType = "Cherry"
+                    if isRock then itemType = "Rock" end
+                    if isStick then itemType = "Stick" end
+                    
+                    table.insert(resources, { Instance = obj, Type = itemType })
+                end
+            end
+        end
+    end
+    
+    -- Night Monsters Folder Streaming Extraction (Targets Feral_Active directly)
+    local monstersFolder = game:GetService("Workspace"):FindFirstChild("Monsters") or game:GetService("Workspace"):FindFirstChild("Monsters", true)
+    if monstersFolder then
+        for _, creature in ipairs(monstersFolder:GetDescendants()) do
+            if creature.Name == "Feral_Active" or creature:IsA("Humanoid") then
+                local rootModel = creature:IsA("Humanoid") and creature.Parent or creature
+                if rootModel and rootModel.Name ~= "Sheep" and rootModel.Name ~= "Deer" and rootModel.Name ~= LocalPlayer.Name then
+                    table.insert(monsters, rootModel)
+                end
+            end
+        end
+    end
+    
+    return resources, monsters, planes
+end
+
+-- 2. Technical Billboard Overlay Drawing Pipeline
+function _G.applyTrackingESP(instance, color, displayName, useHighlight)
+    if instance:FindFirstChild("ONUE_Label") then return end
+
+    if useHighlight and not instance:FindFirstChild("ONUE_ESP") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ONUE_ESP"
+        highlight.FillColor = color
+        highlight.FillTransparency = 0.4
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.OutlineTransparency = 0.1
+        highlight.Adornee = instance
+        highlight.Parent = instance
+    end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ONUE_Label"
+    billboard.Size = UDim2.new(0, 130, 0, 30)
+    billboard.AlwaysOnTop = true
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Adornee = instance
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = color
+    textLabel.TextStrokeTransparency = 0.2
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Font = Enum.Font.Ubuntu
+    textLabel.TextSize = 13
+    textLabel.Text = displayName
+    textLabel.Parent = billboard
+    
     billboard.Parent = instance
     table.insert(_G.Active_ESP_Boxes, {inst = instance, high = instance:FindFirstChild("ONUE_ESP"), bill = billboard})
 end
 
--- 3. High-Frequency Self-Cleaning Disappear Hook
+-- 3. High-Frequency Self-Cleaning Disappear Hook (Disappears immediately when collected)
 function _G.validateActiveTracking()
     for i = #_G.Active_ESP_Boxes, 1, -1 do
         local data = _G.Active_ESP_Boxes[i]
@@ -152,6 +252,7 @@ function _G.validateActiveTracking()
         end
     end
 end
+
 -- =====================================================================
 -- [[               PART 2 - SECTION B: RUNTIME LOOPS                 ]]
 -- =====================================================================
