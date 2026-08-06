@@ -7,7 +7,7 @@ local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Global Shared Environment State Variables
+-- Global Environment State Registers
 _G.ESP_Enabled = false
 _G.Monster_ESP_Enabled = false
 _G.Speed_Enabled = false
@@ -17,13 +17,13 @@ _G.Target_Speed = 55
 _G.Active_ESP_Boxes = {}
 _G.SpeedConnection = nil
 
--- Remotes Cache Configuration
+-- Remotes Index Cache
 _G.AxeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("AxeSwingEvent")
 -- =====================================================================
 -- [[             PART 2 - SECTION A: SCANNER FUNCTIONS               ]]
 -- =====================================================================
 
--- 1. Optimized Clean Item Finder Engine with Blueprint Filtering
+-- 1. Optimized Clean Item Finder Engine
 function _G.locateGameTargets()
     local resources = {}
     local monsters = {}
@@ -32,7 +32,7 @@ function _G.locateGameTargets()
     local workspaceChildren = game:GetService("Workspace"):GetDescendants()
     
     for _, obj in ipairs(workspaceChildren) do
-        -- Strict Parental Ancestor Blueprint Elimination Pass
+        -- Blueprint Filter Pass (Ignores ghost campfire frames)
         local isBlueprint = false
         local current = obj.Parent
         while current and current ~= game:GetService("Workspace") do
@@ -47,13 +47,13 @@ function _G.locateGameTargets()
         if not isBlueprint then
             local name = obj.Name
             
-            -- Minimal Plane Tracker Identification Node
+            -- Plane Identification Node
             if name == "Plane" or name:find("Plane") then
                 if obj:IsA("Model") or obj:IsA("BasePart") then
                     table.insert(planes, obj)
                 end
             
-            -- Resource Sorting Node
+            -- Solid Resource Item Sorting Node
             elseif obj:IsA("BasePart") or obj:IsA("Model") then
                 local isRock = name:find("Rock")
                 local isStick = name:find("Sticks") or name:find("Stick")
@@ -70,7 +70,7 @@ function _G.locateGameTargets()
         end
     end
     
-    -- Night Monsters Streaming Folder Resolution (Grabs Feral_Active)
+    -- Night Monsters Folder Streaming Extraction (Targets Feral_Active directly)
     local monstersFolder = game:GetService("Workspace"):FindFirstChild("Monsters") or game:GetService("Workspace"):FindFirstChild("Monsters", true)
     if monstersFolder then
         for _, creature in ipairs(monstersFolder:GetDescendants()) do
@@ -114,7 +114,7 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     textLabel.TextColor3 = color
     textLabel.TextStrokeTransparency = 0.2
     textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Font = Enum.Font.Ubuntu
     textLabel.TextSize = 13
     textLabel.Text = displayName
     textLabel.Parent = billboard
@@ -123,7 +123,7 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     table.insert(_G.Active_ESP_Boxes, {inst = instance, high = instance:FindFirstChild("ONUE_ESP"), bill = billboard})
 end
 
--- 3. High-Frequency Self-Cleaning Tracker (Disappears immediately when harvested)
+-- 3. High-Frequency Self-Cleaning Disappear Hook
 function _G.validateActiveTracking()
     for i = #_G.Active_ESP_Boxes, 1, -1 do
         local data = _G.Active_ESP_Boxes[i]
@@ -204,7 +204,6 @@ task.spawn(function()
                             if treeModel and treeModel:GetAttribute("Broken") ~= true then
                                 local treeId = treeModel:GetAttribute("WorldGenTreeId") or treeModel:GetAttribute("GeneratedTreeId")
                                 if typeof(treeId) == "string" then
-                                    -- Continuous data packet burst stream bypasses loop limits
                                     _G.AxeRemote:FireServer(treeId)
                                     _G.AxeRemote:FireServer(treeId)
                                     _G.AxeRemote:FireServer(treeId)
@@ -223,9 +222,9 @@ end)
 task.spawn(function()
     while task.wait(0.2) do
         _G.validateActiveTracking()
-        local itemPool, mobPool, planePool = _G.locateGameTargets()
+        local itemPool, mobPool, planePool = _G.locateAllTargets()
         
-        -- Permanent Automatic Minimal Plane Text Tracker (No Blinding Glow Box)
+        -- Always-On Automatic Plane Text Tracker (NO Blinding Glow Box)
         for _, plane in ipairs(planePool) do
             _G.applyTrackingESP(plane, Color3.fromRGB(0, 160, 255), "✈️ Plane", false)
         end
@@ -270,100 +269,104 @@ task.spawn(function()
     end
 end)
 -- =====================================================================
--- [[             PART 3: THE CYBER OBSIDIAN NATIVE UI                 ]]
+-- [[             PART 3: NEON MIDNIGHT ECLIPSE FORMAL UI              ]]
 -- =====================================================================
-local targetHUD = LocalPlayer:WaitForChild("PlayerGui")
 
--- Safely clear overlapping duplicates to prevent screen clutter
-if targetHUD:FindFirstChild("ONU_Terminal_Matrix") then
-    targetHUD.ONU_Terminal_Matrix:Destroy()
+if CoreGui:FindFirstChild("ONUMenuInterface") then
+    CoreGui.ONUMenuInterface:Destroy()
 end
 
-local UIContainer = Instance.new("ScreenGui")
-UIContainer.Name = "ONU_Terminal_Matrix"
-UIContainer.ResetOnSpawn = false
-UIContainer.Parent = targetHUD
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ONUMenuInterface"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = CoreGui
 
--- Main Frame Panel (Locked Screen Center Configuration with curved edge points)
-local BasePanel = Instance.new("Frame")
-BasePanel.Size = UDim2.new(0, 240, 0, 175) 
-BasePanel.Position = UDim2.new(0.5, -120, 0.5, -87) 
-BasePanel.BackgroundColor3 = Color3.fromRGB(7, 7, 9) -- Premium Cyber Obsidian Matte Black
-BasePanel.BorderColor3 = Color3.fromRGB(38, 38, 45) -- Dark Mechanical Steel Outline
-BasePanel.BorderSizePixel = 1
-BasePanel.Active = true
-BasePanel.Draggable = true -- Full floating drag freedom support built directly into layout!
-BasePanel.Parent = UIContainer
+-- Rounded Floating Action Keybind Button
+local CircleToggle = Instance.new("TextButton")
+CircleToggle.Size = UDim2.new(0, 55, 0, 55)
+CircleToggle.Position = UDim2.new(0.05, 0, 0.4, 0)
+CircleToggle.BackgroundColor3 = Color3.fromRGB(10, 10, 12) 
+CircleToggle.BorderColor3 = Color3.fromRGB(0, 220, 100) -- Vibrant Electric Emerald Framing
+CircleToggle.BorderSizePixel = 2
+CircleToggle.Text = "ONU"
+CircleToggle.Font = Enum.Font.Arcade -- Custom High-Tech Stylized Lettering
+CircleToggle.TextSize = 18
+CircleToggle.TextColor3 = Color3.fromRGB(255, 255, 255) 
+CircleToggle.Active = true
+CircleToggle.Draggable = true
+CircleToggle.Parent = ScreenGui
 
-local BorderCurve = Instance.new("UICorner")
-BorderCurve.CornerRadius = UDim.new(0, 6) 
-BorderCurve.Parent = BasePanel
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = CircleToggle
 
--- Top Title Label Header (ONU)
-local HeaderLabel = Instance.new("TextLabel")
-HeaderLabel.Size = UDim2.new(1, 0, 0, 35)
-HeaderLabel.BackgroundColor3 = Color3.fromRGB(15, 15, 18) -- Smooth Charcoal Top Bar
-HeaderLabel.BorderSizePixel = 0
-HeaderLabel.Text = "ONU"
-HeaderLabel.Font = Enum.Font.SourceSansBold -- Professional Corporate Formal Font
-HeaderLabel.TextSize = 15
-HeaderLabel.TextColor3 = Color3.fromRGB(245, 245, 250) -- Crisp Ice White
-HeaderLabel.Parent = BasePanel
+-- Flat Modular Backing Window Profile (MainFrame serves directly as the parent to prevent blank drops)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 145) -- Scaled to perfectly map 4 button row modules
+MainFrame.Position = UDim2.new(0, 65, 0, 0) 
+MainFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 6) -- Deep Matte Obsidian Slate
+MainFrame.BorderColor3 = Color3.fromRGB(40, 42, 50) -- Slate Grey Framing Edge
+MainFrame.BorderSizePixel = 1
+MainFrame.Visible = false 
+MainFrame.Parent = CircleToggle
 
-local HeaderCurve = Instance.new("UICorner")
-HeaderCurve.CornerRadius = UDim.new(0, 6)
-HeaderCurve.Parent = HeaderLabel
+local Layout = Instance.new("UIListLayout")
+Layout.Padding = UDim.new(0, 4)
+Layout.SortOrder = Enum.SortOrder.LayoutOrder
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Cybernetic Linear Grey Shift Shading Overlay
-local ShadingFX = Instance.new("UIGradient")
-ShadingFX.Rotation = 90
-ShadingFX.Color = ColorSequence.new({
-    ColorSequenceKey.new(0, Color3.fromRGB(40, 40, 45)), -- Glossy Silver Upper Slate Edge
-    ColorSequenceKey.new(1, Color3.fromRGB(10, 10, 12)) -- Matte Black Under Base Anchor
-})
-ShadingFX.Parent = HeaderLabel
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Size = UDim2.new(1, -12, 1, -10)
+ContentContainer.Position = UDim2.new(0, 6, 0, 5)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.Parent = MainFrame
+Layout.Parent = ContentContainer
 
--- Hardwired Button Generator Block (Manually placed to prevent list compilation crashes)
-local function createHardwiredButton(label, posY, callback)
+CircleToggle.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+-- Hardwired Technical Button Swapper Factory
+local function createMenuButton(cleanLabel, placementIndex, actionCallback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 226, 0, 31)
-    btn.Position = UDim2.new(0, 7, 0, posY)
-    btn.BackgroundColor3 = Color3.fromRGB(13, 13, 16) -- Deep Charcoal Row Plates
-    btn.BorderColor3 = Color3.fromRGB(26, 26, 32)
+    btn.Size = UDim2.new(1, 0, 0, 31)
+    btn.BackgroundColor3 = Color3.fromRGB(15, 15, 18) -- Carbon Charcoal Row base plate
+    btn.BorderColor3 = Color3.fromRGB(28, 30, 36)
     btn.BorderSizePixel = 1
-    btn.Text = "  " .. label
-    btn.Font = Enum.Font.SourceSans -- Formal Left-Aligned Technical Typography Style
-    btn.TextSize = 13
-    btn.TextColor3 = Color3.fromRGB(170, 170, 180) -- Cool Silver Gray Text
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.Parent = BasePanel
-
-    local ind = Instance.new("TextLabel")
-    ind.Size = UDim2.new(0, 45, 1, 0)
-    ind.Position = UDim2.new(1, -50, 0, 0)
-    ind.BackgroundTransparency = 1
-    ind.Text = "OFF"
-    ind.Font = Enum.Font.SourceSansBold
-    ind.TextSize = 12
-    ind.TextColor3 = Color3.fromRGB(140, 140, 145)
-    ind.TextXAlignment = Enum.TextXAlignment.Center
-    ind.Parent = btn
-
-    local toggle = false
+    btn.Text = "  " .. cleanLabel .. " [OFF]"
+    btn.TextColor3 = Color3.fromRGB(160, 160, 165) -- Formal Off-White Text
+    btn.Font = Enum.Font.Ubuntu -- Professional High-Legibility Typeface Style
+    btn.TextSize = 12
+    btn.TextXAlignment = Enum.TextXAlignment.Left -- Clean formal alignment
+    btn.LayoutOrder = placementIndex
+    
+    local activeToggleState = false
     btn.MouseButton1Click:Connect(function()
-        toggle = not toggle
-        ind.Text = toggle and "ON" or "OFF"
-        ind.TextColor3 = toggle and Color3.fromRGB(0, 225, 105) or Color3.fromRGB(140, 140, 145) -- Emerald Active State
-        btn.BackgroundColor3 = toggle and Color3.fromRGB(16, 24, 19) or Color3.fromRGB(13, 13, 16)
-        btn.BorderColor3 = toggle and Color3.fromRGB(30, 55, 35) or Color3.fromRGB(26, 26, 32)
-        callback(toggle)
+        activeToggleState = not activeToggleState
+        if activeToggleState then
+            btn.Text = "  " .. cleanLabel .. " [ON]"
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255) 
+            btn.BackgroundColor3 = Color3.fromRGB(16, 26, 20) -- Emerald row highlight on select
+            btn.BorderColor3 = Color3.fromRGB(0, 220, 100)
+        else
+            btn.Text = "  " .. cleanLabel .. " [OFF]"
+            btn.TextColor3 = Color3.fromRGB(160, 160, 165)
+            btn.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+            btn.BorderColor3 = Color3.fromRGB(28, 30, 36)
+        end
+        actionCallback(activeToggleState)
     end)
+    
+    btn.Parent = ContentContainer
+    return btn
 end
 
--- Build Fixed Pixel Row Placements Directly (Bypasses UIListLayout Drops)
-createHardwiredButton("ESP - Rock/Stick/Cherry", 42, function(state) _G.ESP_Enabled = state end)
-createHardwiredButton("ESP Monsters", 75, function(state) _G.Monster_ESP_Enabled = state end)
-createHardwiredButton("Speed Hack", 108, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
-createHardwiredButton("Fast Chop/Attack", 141, function(state) _G.AutoFarm_Trees_Enabled = state end)
+-- =====================================================================
+-- [[            FIXED FORMAL COMPONENT DIRECT LINKAGE TREE           ]]
+-- =====================================================================
+createMenuButton("ESP - Rock/Stick/Cherry", 1, function(state) _G.ESP_Enabled = state end)
+createMenuButton("ESP Monsters", 2, function(state) _G.Monster_ESP_Enabled = state end)
+createMenuButton("Speed Hack", 3, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
+createMenuButton("Fast Chop/Attack", 4, function(state) _G.AutoFarm_Trees_Enabled = state end)
 
 
