@@ -32,7 +32,6 @@ function _G.locateGameTargets()
     local workspaceChildren = game:GetService("Workspace"):GetDescendants()
     
     for _, obj in ipairs(workspaceChildren) do
-        -- Blueprint Filter Pass (Ignores ghost campfire frames)
         local isBlueprint = false
         local current = obj.Parent
         while current and current ~= game:GetService("Workspace") do
@@ -47,13 +46,10 @@ function _G.locateGameTargets()
         if not isBlueprint then
             local name = obj.Name
             
-            -- Plane Identification Node
             if name == "Plane" or name:find("Plane") then
                 if obj:IsA("Model") or obj:IsA("BasePart") then
                     table.insert(planes, obj)
                 end
-            
-            -- Solid Resource Item Sorting Node
             elseif obj:IsA("BasePart") or obj:IsA("Model") then
                 local isRock = name:find("Rock")
                 local isStick = name:find("Sticks") or name:find("Stick")
@@ -70,7 +66,6 @@ function _G.locateGameTargets()
         end
     end
     
-    -- Night Monsters Folder Streaming Extraction (Targets Feral_Active directly)
     local monstersFolder = game:GetService("Workspace"):FindFirstChild("Monsters") or game:GetService("Workspace"):FindFirstChild("Monsters", true)
     if monstersFolder then
         for _, creature in ipairs(monstersFolder:GetDescendants()) do
@@ -123,7 +118,7 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     table.insert(_G.Active_ESP_Boxes, {inst = instance, high = instance:FindFirstChild("ONUE_ESP"), bill = billboard})
 end
 
--- 3. High-Frequency Self-Cleaning Disappear Hook (Disappears immediately when collected)
+-- 3. High-Frequency Self-Cleaning State Loop
 function _G.validateActiveTracking()
     for i = #_G.Active_ESP_Boxes, 1, -1 do
         local data = _G.Active_ESP_Boxes[i]
@@ -224,12 +219,10 @@ task.spawn(function()
         _G.validateActiveTracking()
         local itemPool, mobPool, planePool = _G.locateGameTargets()
         
-        -- Always-On Automatic Plane Text Tracker (NO Blinding Glow Box)
         for _, plane in ipairs(planePool) do
             _G.applyTrackingESP(plane, Color3.fromRGB(0, 160, 255), "✈️ Plane", false)
         end
         
-        -- Resource Item ESP Processing Lane
         if _G.ESP_Enabled then
             for _, data in ipairs(itemPool) do
                 local obj = data.Instance
@@ -251,7 +244,6 @@ task.spawn(function()
             end
         end
         
-        -- Night Monster ESP Folder Processing Lane
         if _G.Monster_ESP_Enabled then
             for _, mob in ipairs(mobPool) do
                 _G.applyTrackingESP(mob, Color3.fromRGB(255, 10, 20), "👹 Monster", true)
@@ -269,10 +261,9 @@ task.spawn(function()
     end
 end)
 -- =====================================================================
--- [[             PART 3: THE VOID ECLIPSE FORMAL UI                  ]]
+-- [[             PART 3: HARDWIRED GEOMETRY MENU PANEL               ]]
 -- =====================================================================
 
--- Destroy active UI container duplicates before drawing to prevent screen clutter
 if CoreGui:FindFirstChild("ONU_Interface_Matrix") then
     CoreGui.ONU_Interface_Matrix:Destroy()
 end
@@ -282,11 +273,11 @@ UIContainer.Name = "ONU_Interface_Matrix"
 UIContainer.ResetOnSpawn = false
 UIContainer.Parent = CoreGui
 
--- Base Window Frame Panel (Locked Screen Center Configuration with curved edge points)
+-- Base Window Frame Panel (Middle Screen Configuration)
 local BasePanel = Instance.new("Frame")
 BasePanel.Size = UDim2.new(0, 240, 0, 175) 
-BasePanel.Position = UDim2.new(0.5, -120, 0.5, -87) 
-BasePanel.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- Solid Matte Obsidian Black
+BasePanel.Position = UDim2.new(0.5, -120, 0.5, -87) -- Center Locked position
+BasePanel.BackgroundColor3 = Color3.fromRGB(5, 5, 5) -- Matte Obsidian Black
 BasePanel.BorderColor3 = Color3.fromRGB(35, 35, 40) 
 BasePanel.BorderSizePixel = 1
 BasePanel.Parent = UIContainer
@@ -295,7 +286,7 @@ local BorderCurve = Instance.new("UICorner")
 BorderCurve.CornerRadius = UDim.new(0, 6) 
 BorderCurve.Parent = BasePanel
 
--- Title Element Top Label Header
+-- Top Header Label (ONU)
 local HeaderLabel = Instance.new("TextLabel")
 HeaderLabel.Size = UDim2.new(1, 0, 0, 35)
 HeaderLabel.BackgroundColor3 = Color3.fromRGB(22, 4, 6) 
@@ -310,7 +301,7 @@ local HeaderCurve = Instance.new("UICorner")
 HeaderCurve.CornerRadius = UDim.new(0, 6)
 HeaderCurve.Parent = HeaderLabel
 
--- Custom Linear Shift Gradient Consumption Shader Profile
+-- Red-To-Black Gradient Shift
 local ShadingFX = Instance.new("UIGradient")
 ShadingFX.Rotation = 90
 ShadingFX.Color = ColorSequence.new({
@@ -319,71 +310,145 @@ ShadingFX.Color = ColorSequence.new({
 })
 ShadingFX.Parent = HeaderLabel
 
--- Internal Component Layout Sorter Grid
-local ListGrid = Instance.new("UIListLayout")
-ListGrid.Padding = UDim.new(0, 2)
-ListGrid.SortOrder = Enum.SortOrder.LayoutOrder
-ListGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+-- =====================================================================
+-- [[           HARDWIRED BUTTON 1: ESP - Rock/Stick/Cherry           ]]
+-- =====================================================================
+local Btn1 = Instance.new("TextButton")
+Btn1.Size = UDim2.new(0, 226, 0, 31)
+Btn1.Position = UDim2.new(0, 7, 0, 42) -- Fixed pixel position
+Btn1.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+Btn1.BorderColor3 = Color3.fromRGB(25, 25, 25)
+Btn1.Text = "  ESP - Rock/Stick/Cherry"
+Btn1.Font = Enum.Font.SourceSans
+Btn1.TextSize = 13
+Btn1.TextColor3 = Color3.fromRGB(160, 160, 160)
+Btn1.TextXAlignment = Enum.TextXAlignment.Left
+Btn1.Parent = BasePanel
 
-local ControlRack = Instance.new("Frame")
-ControlRack.Size = UDim2.new(1, -14, 1, -43)
-ControlRack.Position = UDim2.new(0, 7, 0, 38)
-ControlRack.BackgroundTransparency = 1
-ControlRack.Parent = BasePanel
-ListGrid.Parent = ControlRack
+local Ind1 = Instance.new("TextLabel")
+Ind1.Size = UDim2.new(0, 45, 1, 0)
+Ind1.Position = UDim2.new(1, -50, 0, 0)
+Ind1.BackgroundTransparency = 1
+Ind1.Text = "OFF"
+Ind1.Font = Enum.Font.SourceSansBold
+Ind1.TextSize = 12
+Ind1.TextColor3 = Color3.fromRGB(140, 140, 140)
+Ind1.Parent = Btn1
 
--- System Formal Button Switch Generator Function
-local function buildFormalSwitch(displayLabel, sortingWeightIndex, toggleFeedbackCallback)
-    local actionBtn = Instance.new("TextButton")
-    actionBtn.Size = UDim2.new(1, 0, 0, 31) 
-    actionBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 12) 
-    actionBtn.BorderColor3 = Color3.fromRGB(25, 25, 25)
-    actionBtn.BorderSizePixel = 1
-    actionBtn.Text = "  " .. displayLabel
-    actionBtn.Font = Enum.Font.SourceSans 
-    actionBtn.TextSize = 13
-    actionBtn.TextColor3 = Color3.fromRGB(160, 160, 160) 
-    actionBtn.TextXAlignment = Enum.TextXAlignment.Left
-    actionBtn.LayoutOrder = sortingWeightIndex
-    
-    local statusIndicator = Instance.new("TextLabel")
-    statusIndicator.Size = UDim2.new(0, 45, 1, 0)
-    statusIndicator.Position = UDim2.new(1, -50, 0, 0)
-    statusIndicator.BackgroundTransparency = 1
-    statusIndicator.Text = "OFF"
-    statusIndicator.Font = Enum.Font.SourceSansBold
-    statusIndicator.TextSize = 12
-    statusIndicator.TextColor3 = Color3.fromRGB(140, 140, 140)
-    statusIndicator.TextXAlignment = Enum.TextXAlignment.Center
-    statusIndicator.Parent = actionBtn
-    
-    local internalStateVar = false
-    actionBtn.MouseButton1Click:Connect(function()
-        internalStateVar = not internalStateVar
-        if internalStateVar then
-            statusIndicator.Text = "ON"
-            statusIndicator.TextColor3 = Color3.fromRGB(0, 220, 100) -- Clean Emerald Green Accent
-            actionBtn.BackgroundColor3 = Color3.fromRGB(16, 22, 18) 
-            actionBtn.BorderColor3 = Color3.fromRGB(30, 50, 35)
-        else
-            statusIndicator.Text = "OFF"
-            statusIndicator.TextColor3 = Color3.fromRGB(140, 140, 140)
-            actionBtn.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-            actionBtn.BorderColor3 = Color3.fromRGB(25, 25, 25)
-        end
-        toggleFeedbackCallback(internalStateVar)
-    end)
-    
-    actionBtn.Parent = ControlRack
-    return actionBtn
-end
+local State1 = false
+Btn1.MouseButton1Click:Connect(function()
+    State1 = not State1
+    _G.ESP_Enabled = State1
+    Ind1.Text = State1 and "ON" or "OFF"
+    Ind1.TextColor3 = State1 and Color3.fromRGB(0, 220, 100) or Color3.fromRGB(140, 140, 140)
+    Btn1.BackgroundColor3 = State1 and Color3.fromRGB(16, 22, 18) or Color3.fromRGB(12, 12, 12)
+    Btn1.BorderColor3 = State1 and Color3.fromRGB(30, 50, 35) or Color3.fromRGB(25, 25, 25)
+end)
 
 -- =====================================================================
--- [[            FIXED FORMAL COMPONENT DIRECT LINKAGE TREE           ]]
+-- [[                 HARDWIRED BUTTON 2: ESP Monsters                 ]]
 -- =====================================================================
-buildFormalSwitch("ESP - Rock/Stick/Cherry", 1, function(state) _G.ESP_Enabled = state end)
-buildFormalSwitch("ESP Monsters", 2, function(state) _G.Monster_ESP_Enabled = state end)
-buildFormalSwitch("Speed Hack", 3, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
-buildFormalSwitch("Fast Chop/Attack", 4, function(state) _G.AutoFarm_Trees_Enabled = state end)
+local Btn2 = Instance.new("TextButton")
+Btn2.Size = UDim2.new(0, 226, 0, 31)
+Btn2.Position = UDim2.new(0, 7, 0, 75) -- Fixed pixel position
+Btn2.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+Btn2.BorderColor3 = Color3.fromRGB(25, 25, 25)
+Btn2.Text = "  ESP Monsters"
+Btn2.Font = Enum.Font.SourceSans
+Btn2.TextSize = 13
+Btn2.TextColor3 = Color3.fromRGB(160, 160, 160)
+Btn2.TextXAlignment = Enum.TextXAlignment.Left
+Btn2.Parent = BasePanel
+
+local Ind2 = Instance.new("TextLabel")
+Ind2.Size = UDim2.new(0, 45, 1, 0)
+Ind2.Position = UDim2.new(1, -50, 0, 0)
+Ind2.BackgroundTransparency = 1
+Ind2.Text = "OFF"
+Ind2.Font = Enum.Font.SourceSansBold
+Ind2.TextSize = 12
+Ind2.TextColor3 = Color3.fromRGB(140, 140, 140)
+Ind2.Parent = Btn2
+
+local State2 = false
+Btn2.MouseButton1Click:Connect(function()
+    State2 = not State2
+    _G.Monster_ESP_Enabled = State2
+    Ind2.Text = State2 and "ON" or "OFF"
+    Ind2.TextColor3 = State2 and Color3.fromRGB(0, 220, 100) or Color3.fromRGB(140, 140, 140)
+    Btn2.BackgroundColor3 = State2 and Color3.fromRGB(16, 22, 18) or Color3.fromRGB(12, 12, 12)
+    Btn2.BorderColor3 = State2 and Color3.fromRGB(30, 50, 35) or Color3.fromRGB(25, 25, 25)
+end)
+
+-- =====================================================================
+-- [[                   HARDWIRED BUTTON 3: Speed Hack                 ]]
+-- =====================================================================
+local Btn3 = Instance.new("TextButton")
+Btn3.Size = UDim2.new(0, 226, 0, 31)
+Btn3.Position = UDim2.new(0, 7, 0, 108) -- Fixed pixel position
+Btn3.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+Btn3.BorderColor3 = Color3.fromRGB(25, 25, 25)
+Btn3.Text = "  Speed Hack"
+Btn3.Font = Enum.Font.SourceSans
+Btn3.TextSize = 13
+Btn3.TextColor3 = Color3.fromRGB(160, 160, 160)
+Btn3.TextXAlignment = Enum.TextXAlignment.Left
+Btn3.Parent = BasePanel
+
+local Ind3 = Instance.new("TextLabel")
+Ind3.Size = UDim2.new(0, 45, 1, 0)
+Ind3.Position = UDim2.new(1, -50, 0, 0)
+Ind3.BackgroundTransparency = 1
+Ind3.Text = "OFF"
+Ind3.Font = Enum.Font.SourceSansBold
+Ind3.TextSize = 12
+Ind3.TextColor3 = Color3.fromRGB(140, 140, 140)
+Ind3.Parent = Btn3
+
+local State3 = false
+Btn3.MouseButton1Click:Connect(function()
+    State3 = not State3
+    _G.Speed_Enabled = State3
+    _G.updateSpeedHack()
+    Ind3.Text = State3 and "ON" or "OFF"
+    Ind3.TextColor3 = State3 and Color3.fromRGB(0, 220, 100) or Color3.fromRGB(140, 140, 140)
+    Btn3.BackgroundColor3 = State3 and Color3.fromRGB(16, 22, 18) or Color3.fromRGB(12, 12, 12)
+    Btn3.BorderColor3 = State3 and Color3.fromRGB(30, 50, 35) or Color3.fromRGB(25, 25, 25)
+end)
+
+-- =====================================================================
+-- [[               HARDWIRED BUTTON 4: Fast Chop/Attack              ]]
+-- =====================================================================
+local Btn4 = Instance.new("TextButton")
+Btn4.Size = UDim2.new(0, 226, 0, 31)
+Btn4.Position = UDim2.new(0, 7, 0, 141) -- Fixed pixel position
+Btn4.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+Btn4.BorderColor3 = Color3.fromRGB(25, 25, 25)
+Btn4.Text = "  Fast Chop/Attack"
+Btn4.Font = Enum.Font.SourceSans
+Btn4.TextSize = 13
+Btn4.TextColor3 = Color3.fromRGB(160, 160, 160)
+Btn4.TextXAlignment = Enum.TextXAlignment.Left
+Btn4.Parent = BasePanel
+
+local Ind4 = Instance.new("TextLabel")
+Ind4.Size = UDim2.new(0, 45, 1, 0)
+Ind4.Position = UDim2.new(1, -50, 0, 0)
+Ind4.BackgroundTransparency = 1
+Ind4.Text = "OFF"
+Ind4.Font = Enum.Font.SourceSansBold
+Ind4.TextSize = 12
+Ind4.TextColor3 = Color3.fromRGB(140, 140, 140)
+Ind4.Parent = Btn4
+
+local State4 = false
+Btn4.MouseButton1Click:Connect(function()
+    State4 = not State4
+    _G.AutoFarm_Trees_Enabled = State4
+    Ind4.Text = State4 and "ON" or "OFF"
+    Ind4.TextColor3 = State4 and Color3.fromRGB(0, 220, 100) or Color3.fromRGB(140, 140, 140)
+    Btn4.BackgroundColor3 = State4 and Color3.fromRGB(16, 22, 18) or Color3.fromRGB(12, 12, 12)
+    Btn4.BorderColor3 = State4 and Color3.fromRGB(30, 50, 35) or Color3.fromRGB(25, 25, 25)
+end)
 
 
