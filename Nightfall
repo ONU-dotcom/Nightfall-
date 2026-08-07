@@ -19,26 +19,29 @@ _G.SpeedConnection = nil
 
 -- Remotes Index Cache
 _G.AxeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("AxeSwingEvent")
+
+-- Safe Core Global Pre-Declarations (Prevents UI execution failure drops)
+_G.updateSpeedHack = function() end
+_G.locateGameTargets = function() return {}, {}, {} end
+_G.applyTrackingESP = function() end
+_G.validateActiveTracking = function() end
 -- 1. Highly Optimized Focused Resource & Monster Scanner Engine
 function _G.locateGameTargets()
     local resources = {}
     local monsters = {}
     local planes = {}
     
-    -- Performance Scan: Target exact structural directories instead of full workspace tree
     local targets = {}
     local itemFolder = Workspace:FindFirstChild("Items") or Workspace:FindFirstChild("Resources")
     
     if itemFolder then
         targets = itemFolder:GetChildren()
     else
-        targets = Workspace:GetChildren() -- Fallback if world directories are flat
+        targets = Workspace:GetChildren()
     end
     
     for _, obj in ipairs(targets) do
         local name = obj.Name:lower()
-        
-        -- Filter out blueprint or player construction assets immediately
         local isBlueprint = name:find("blueprint") or name:find("camp") or name:find("fire")
         
         if not isBlueprint then
@@ -62,7 +65,6 @@ function _G.locateGameTargets()
         end
     end
     
-    -- Isolated Monster Folder Streaming Pass
     local monstersFolder = Workspace:FindFirstChild("Monsters")
     if monstersFolder then
         for _, creature in ipairs(monstersFolder:GetChildren()) do
@@ -164,7 +166,7 @@ end
 -- Controlled Fast Chop Automation Processing Layer
 task.spawn(function()
     while true do
-        task.wait(0.12) -- Optimized cadence: Rapid but human-fast execution to prevent network drops
+        task.wait(0.12)
         
         if _G.AutoFarm_Trees_Enabled then
             local character = LocalPlayer.Character
@@ -177,7 +179,6 @@ task.spawn(function()
             end
             
             if rootPart then
-                -- Spatial awareness lookup query instead of scanning thousands of workspace parts
                 local overlapParams = OverlapParams.new()
                 overlapParams.FilterType = Enum.RaycastFilterType.Include
                 
@@ -201,7 +202,6 @@ task.spawn(function()
                         if treeModel and treeModel:GetAttribute("Broken") ~= true then
                             local treeId = treeModel:GetAttribute("WorldGenTreeId") or treeModel:GetAttribute("GeneratedTreeId")
                             if typeof(treeId) == "string" then
-                                -- Regulated fast attack dual packet execution sequence
                                 _G.AxeRemote:FireServer(treeId)
                                 _G.AxeRemote:FireServer(treeId)
                                 break
@@ -220,12 +220,10 @@ task.spawn(function()
         _G.validateActiveTracking()
         local itemPool, mobPool, planePool = _G.locateGameTargets()
         
-        -- Always-On Silent Plane Monitor Passage
         for _, plane in ipairs(planePool) do
             _G.applyTrackingESP(plane, Color3.fromRGB(0, 160, 255), "Plane Target", false)
         end
         
-        -- Item ESP Execution Matrix
         for _, data in ipairs(itemPool) do
             local obj = data.Instance
             local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
@@ -240,7 +238,6 @@ task.spawn(function()
             end
         end
         
-        -- Fallback cleanup handling for turned-off categories
         for i = #_G.Active_ESP_Boxes, 1, -1 do
             local box = _G.Active_ESP_Boxes[i]
             if box.inst and box.inst.Name ~= "Plane" and not box.inst.Name:find("Plane") and not box.inst:FindFirstChildOfClass("Humanoid") then
@@ -257,7 +254,6 @@ task.spawn(function()
             end
         end
         
-        -- Monster Tracking Stream
         if _G.Monster_ESP_Enabled then
             for _, mob in ipairs(mobPool) do
                 _G.applyTrackingESP(mob, Color3.fromRGB(235, 40, 40), "Target Hostile", true)
@@ -283,11 +279,10 @@ ScreenGui.Name = "ONUMenuInterface"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- 1. Minimalist Floating Command Access Portal
 local CircleToggle = Instance.new("TextButton")
 CircleToggle.Size = UDim2.new(0, 50, 0, 50)
 CircleToggle.Position = UDim2.new(0.05, 0, 0.4, 0)
-CircleToggle.BackgroundColor3 = Color3.fromRGB(24, 26, 30) -- Sleek Charcoal Titanium
+CircleToggle.BackgroundColor3 = Color3.fromRGB(24, 26, 30)
 CircleToggle.BorderColor3 = Color3.fromRGB(60, 64, 72)
 CircleToggle.BorderSizePixel = 1
 CircleToggle.Text = "ONU"
@@ -302,11 +297,10 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleToggle
 
--- 2. Formal Management Panel Interface Matrix
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 220, 0, 230) -- Sized perfectly to house individual resource controls cleanly
+MainFrame.Size = UDim2.new(0, 220, 0, 230) 
 MainFrame.Position = UDim2.new(0, 60, 0, 0) 
-MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 24) -- Clean Slate Professional Dark Void
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 24) 
 MainFrame.BorderColor3 = Color3.fromRGB(44, 48, 56)
 MainFrame.BorderSizePixel = 1
 MainFrame.Visible = false 
@@ -332,11 +326,10 @@ CircleToggle.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- 3. Professional Uniform Button Construction Factory
 local function createMenuButton(cleanLabel, placementIndex, actionCallback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 28)
-    btn.BackgroundColor3 = Color3.fromRGB(28, 32, 38) -- Uniform Row Surface Gray
+    btn.BackgroundColor3 = Color3.fromRGB(28, 32, 38) 
     btn.BorderColor3 = Color3.fromRGB(44, 48, 56)
     btn.BorderSizePixel = 1
     btn.Text = "  " .. cleanLabel .. " : OFF"
@@ -356,7 +349,7 @@ local function createMenuButton(cleanLabel, placementIndex, actionCallback)
         if activeToggleState then
             btn.Text = "  " .. cleanLabel .. " : ACTIVE"
             btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            btn.BackgroundColor3 = Color3.fromRGB(38, 45, 56) -- Elegant professional slate selection tint
+            btn.BackgroundColor3 = Color3.fromRGB(38, 45, 56) 
             btn.BorderColor3 = Color3.fromRGB(70, 100, 140)
         else
             btn.Text = "  " .. cleanLabel .. " : OFF"
