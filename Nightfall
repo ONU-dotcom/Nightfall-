@@ -1,14 +1,14 @@
--- =====================================================================
--- [[                     ONU 1 - CORE SYSTEM CONFIG                  ]]
--- =====================================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 -- Global Environment State Registers
-_G.ESP_Enabled = false
+_G.Rock_ESP_Enabled = false
+_G.Stick_ESP_Enabled = false
+_G.Cherry_ESP_Enabled = false
 _G.Monster_ESP_Enabled = false
 _G.Speed_Enabled = false
 _G.AutoFarm_Trees_Enabled = false
@@ -19,41 +19,33 @@ _G.SpeedConnection = nil
 
 -- Remotes Index Cache
 _G.AxeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("AxeSwingEvent")
--- =====================================================================
--- [[             PART 2 - SECTION A: SCANNER FUNCTIONS               ]]
--- =====================================================================
-
--- 1. Optimized Clean Item Finder Engine with Blueprint Filtering
+-- 1. Highly Optimized Focused Resource & Monster Scanner Engine
 function _G.locateGameTargets()
     local resources = {}
     local monsters = {}
     local planes = {}
     
-    local workspaceChildren = game:GetService("Workspace"):GetDescendants()
+    -- Performance Scan: Target exact structural directories instead of full workspace tree
+    local targets = {}
+    local itemFolder = Workspace:FindFirstChild("Items") or Workspace:FindFirstChild("Resources")
     
-    for _, obj in ipairs(workspaceChildren) do
-        -- Strict Parental Ancestor Blueprint Elimination Pass
-        local isBlueprint = false
-        local current = obj.Parent
-        while current and current ~= game:GetService("Workspace") do
-            local parentName = current.Name:lower()
-            if parentName:find("blueprint") or parentName:find("camp") or parentName:find("fire") then
-                isBlueprint = true
-                break
-            end
-            current = current.Parent
-        end
+    if itemFolder then
+        targets = itemFolder:GetChildren()
+    else
+        targets = Workspace:GetChildren() -- Fallback if world directories are flat
+    end
+    
+    for _, obj in ipairs(targets) do
+        local name = obj.Name:lower()
+        
+        -- Filter out blueprint or player construction assets immediately
+        local isBlueprint = name:find("blueprint") or name:find("camp") or name:find("fire")
         
         if not isBlueprint then
-            local name = obj.Name:lower()
-            
-            -- Minimal Plane Tracker Identification Node
             if name:find("plane") then
                 if obj:IsA("Model") or obj:IsA("BasePart") then
                     table.insert(planes, obj)
                 end
-            
-            -- Resource Sorting Node (Case-Insensitive structural matching strings)
             elseif obj:IsA("BasePart") or obj:IsA("Model") then
                 local isRock = name:find("rock")
                 local isStick = name:find("stick")
@@ -70,14 +62,13 @@ function _G.locateGameTargets()
         end
     end
     
-    -- Night Monsters Streaming Folder Resolution (Grabs Feral_Active)
-    local monstersFolder = game:GetService("Workspace"):FindFirstChild("Monsters") or game:GetService("Workspace"):FindFirstChild("Monsters", true)
+    -- Isolated Monster Folder Streaming Pass
+    local monstersFolder = Workspace:FindFirstChild("Monsters")
     if monstersFolder then
-        for _, creature in ipairs(monstersFolder:GetDescendants()) do
-            if creature.Name == "Feral_Active" or creature:IsA("Humanoid") then
-                local rootModel = creature:IsA("Humanoid") and creature.Parent or creature
-                if rootModel and rootModel.Name ~= "Sheep" and rootModel.Name ~= "Deer" and rootModel.Name ~= LocalPlayer.Name then
-                    table.insert(monsters, rootModel)
+        for _, creature in ipairs(monstersFolder:GetChildren()) do
+            if creature.Name == "Feral_Active" or creature:FindFirstChildOfClass("Humanoid") then
+                if creature.Name ~= "Sheep" and creature.Name ~= "Deer" and creature.Name ~= LocalPlayer.Name then
+                    table.insert(monsters, creature)
                 end
             end
         end
@@ -86,7 +77,7 @@ function _G.locateGameTargets()
     return resources, monsters, planes
 end
 
--- 2. Technical Billboard Overlay Drawing Pipeline
+-- 2. Professional Geometric Overlay Pipeline
 function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     if instance:FindFirstChild("ONUE_Label") then return end
 
@@ -94,16 +85,16 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
         local highlight = Instance.new("Highlight")
         highlight.Name = "ONUE_ESP"
         highlight.FillColor = color
-        highlight.FillTransparency = 0.4
+        highlight.FillTransparency = 0.6
         highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-        highlight.OutlineTransparency = 0.1
+        highlight.OutlineTransparency = 0.2
         highlight.Adornee = instance
         highlight.Parent = instance
     end
 
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "ONUE_Label"
-    billboard.Size = UDim2.new(0, 130, 0, 30)
+    billboard.Size = UDim2.new(0, 120, 0, 25)
     billboard.AlwaysOnTop = true
     billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.Adornee = instance
@@ -112,10 +103,10 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.TextColor3 = color
-    textLabel.TextStrokeTransparency = 0.2
+    textLabel.TextStrokeTransparency = 0.4
     textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    textLabel.Font = Enum.Font.SpecialElite
-    textLabel.TextSize = 13
+    textLabel.Font = Enum.Font.Roboto
+    textLabel.TextSize = 12
     textLabel.Text = displayName
     textLabel.Parent = billboard
     
@@ -123,13 +114,13 @@ function _G.applyTrackingESP(instance, color, displayName, useHighlight)
     table.insert(_G.Active_ESP_Boxes, {inst = instance, high = instance:FindFirstChild("ONUE_ESP"), bill = billboard})
 end
 
--- 3. High-Frequency Self-Cleaning Tracker (Disappears immediately when harvested)
+-- 3. High-Frequency Garbage Collection Node
 function _G.validateActiveTracking()
     for i = #_G.Active_ESP_Boxes, 1, -1 do
         local data = _G.Active_ESP_Boxes[i]
         local shouldClear = false
         
-        if not data.inst or not data.inst.Parent or not data.inst:IsDescendantOf(game:GetService("Workspace")) then
+        if not data.inst or not data.inst.Parent or not data.inst:IsDescendantOf(Workspace) then
             shouldClear = true
         else
             local part = data.inst:IsA("BasePart") and data.inst or data.inst:FindFirstChildWhichIsA("BasePart")
@@ -145,18 +136,16 @@ function _G.validateActiveTracking()
         if shouldClear then
             local targetInstance = data.inst
             if targetInstance then
-                if targetInstance:FindFirstChild("ONUE_ESP") then targetInstance.ONUE_ESP:Destroy() end
-                if targetInstance:FindFirstChild("ONUE_Label") then targetInstance.ONUE_Label:Destroy() end
+                local oldEsp = targetInstance:FindFirstChild("ONUE_ESP")
+                local oldLabel = targetInstance:FindFirstChild("ONUE_Label")
+                if oldEsp then oldEsp:Destroy() end
+                if oldLabel then oldLabel:Destroy() end
             end
             table.remove(_G.Active_ESP_Boxes, i)
         end
     end
 end
--- =====================================================================
--- [[               PART 2 - SECTION B: RUNTIME LOOPS                 ]]
--- =====================================================================
-
--- CFrame Movement Translation Hook
+-- CFrame Vector Speed Translator Hook
 function _G.updateSpeedHack()
     if _G.SpeedConnection then _G.SpeedConnection:Disconnect() end
     if _G.Speed_Enabled then
@@ -172,10 +161,10 @@ function _G.updateSpeedHack()
     end
 end
 
--- TRUE CONTINUOUS FAST CHOP AT PHYSICS STEP SPEEDS
+-- Controlled Fast Chop Automation Processing Layer
 task.spawn(function()
     while true do
-        RunService.Heartbeat:Wait() 
+        task.wait(0.12) -- Optimized cadence: Rapid but human-fast execution to prevent network drops
         
         if _G.AutoFarm_Trees_Enabled then
             local character = LocalPlayer.Character
@@ -188,28 +177,34 @@ task.spawn(function()
             end
             
             if rootPart then
-                for _, obj in ipairs(game:GetService("Workspace"):GetDescendants()) do
+                -- Spatial awareness lookup query instead of scanning thousands of workspace parts
+                local overlapParams = OverlapParams.new()
+                overlapParams.FilterType = Enum.RaycastFilterType.Include
+                
+                local treeFolder = Workspace:FindFirstChild("Trees") or Workspace
+                overlapParams.FilterDescendantsInstances = {treeFolder}
+                
+                local nearbyParts = Workspace:GetPartBoundsInRadius(rootPart.Position, 16, overlapParams)
+                
+                for _, obj in ipairs(nearbyParts) do
                     if obj.Name == "TreeHitbox" and obj:IsA("BasePart") then
-                        local distance = (rootPart.Position - obj.Position).Magnitude
-                        if distance <= 16 then
-                            local current = obj.Parent
-                            local treeModel = nil
-                            while current and current ~= game:GetService("Workspace") do
-                                if current:IsA("Model") and current:GetAttribute("Hitpoints") ~= nil then
-                                    treeModel = current; break
-                                end
-                                current = current.Parent
+                        local current = obj.Parent
+                        local treeModel = nil
+                        while current and current ~= Workspace do
+                            if current:IsA("Model") and current:GetAttribute("Hitpoints") ~= nil then
+                                treeModel = current
+                                break
                             end
-                            
-                            if treeModel and treeModel:GetAttribute("Broken") ~= true then
-                                local treeId = treeModel:GetAttribute("WorldGenTreeId") or treeModel:GetAttribute("GeneratedTreeId")
-                                if typeof(treeId) == "string" then
-                                    -- Continuous data packet burst stream bypasses loop limits
-                                    _G.AxeRemote:FireServer(treeId)
-                                    _G.AxeRemote:FireServer(treeId)
-                                    _G.AxeRemote:FireServer(treeId)
-                                    break
-                                end
+                            current = current.Parent
+                        end
+                        
+                        if treeModel and treeModel:GetAttribute("Broken") ~= true then
+                            local treeId = treeModel:GetAttribute("WorldGenTreeId") or treeModel:GetAttribute("GeneratedTreeId")
+                            if typeof(treeId) == "string" then
+                                -- Regulated fast attack dual packet execution sequence
+                                _G.AxeRemote:FireServer(treeId)
+                                _G.AxeRemote:FireServer(treeId)
+                                break
                             end
                         end
                     end
@@ -219,32 +214,42 @@ task.spawn(function()
     end
 end)
 
--- Main Display Management Thread Coordinator Loop
+-- Main Display Refresh Thread Management Node
 task.spawn(function()
-    while task.wait(0.2) do
+    while task.wait(0.25) do
         _G.validateActiveTracking()
         local itemPool, mobPool, planePool = _G.locateGameTargets()
         
-        -- Always-On Automatic Plane Text Tracker (NO Blinding Glow Box)
+        -- Always-On Silent Plane Monitor Passage
         for _, plane in ipairs(planePool) do
-            _G.applyTrackingESP(plane, Color3.fromRGB(0, 160, 255), "✈️ Plane", false)
+            _G.applyTrackingESP(plane, Color3.fromRGB(0, 160, 255), "Plane Target", false)
         end
         
-        -- Resource Item ESP Processing Lane
-        if _G.ESP_Enabled then
-            for _, data in ipairs(itemPool) do
-                local obj = data.Instance
-                local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
-                if part and part.Transparency < 0.8 and part.CanCollide then
-                    if data.Type == "Rock" then _G.applyTrackingESP(obj, Color3.fromRGB(160, 160, 160), "🪨 Rock", true)
-                    elseif data.Type == "Stick" then _G.applyTrackingESP(obj, Color3.fromRGB(150, 110, 80), "🪾 Stick", true)
-                    elseif data.Type == "Cherry" then _G.applyTrackingESP(obj, Color3.fromRGB(255, 30, 60), "🍒 Cherry", true) end
+        -- Item ESP Execution Matrix
+        for _, data in ipairs(itemPool) do
+            local obj = data.Instance
+            local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+            if part and part.Transparency < 0.8 and part.CanCollide then
+                if data.Type == "Rock" and _G.Rock_ESP_Enabled then 
+                    _G.applyTrackingESP(obj, Color3.fromRGB(170, 175, 180), "Rock", true)
+                elseif data.Type == "Stick" and _G.Stick_ESP_Enabled then 
+                    _G.applyTrackingESP(obj, Color3.fromRGB(160, 125, 95), "Stick", true)
+                elseif data.Type == "Cherry" and _G.Cherry_ESP_Enabled then 
+                    _G.applyTrackingESP(obj, Color3.fromRGB(240, 50, 75), "Cherry", true)
                 end
             end
-        else
-            for i = #_G.Active_ESP_Boxes, 1, -1 do
-                local box = _G.Active_ESP_Boxes[i]
-                if box.inst and not box.inst:FindFirstChildOfClass("Humanoid") and box.inst.Name ~= "Plane" and not box.inst.Name:find("Plane") then
+        end
+        
+        -- Fallback cleanup handling for turned-off categories
+        for i = #_G.Active_ESP_Boxes, 1, -1 do
+            local box = _G.Active_ESP_Boxes[i]
+            if box.inst and box.inst.Name ~= "Plane" and not box.inst.Name:find("Plane") and not box.inst:FindFirstChildOfClass("Humanoid") then
+                local label = box.bill:FindFirstChildOfClass("TextLabel")
+                local labelText = label and label.Text or ""
+                
+                if (labelText == "Rock" and not _G.Rock_ESP_Enabled) or
+                   (labelText == "Stick" and not _G.Stick_ESP_Enabled) or
+                   (labelText == "Cherry" and not _G.Cherry_ESP_Enabled) then
                     if box.inst:FindFirstChild("ONUE_ESP") then box.inst.ONUE_ESP:Destroy() end
                     if box.inst:FindFirstChild("ONUE_Label") then box.inst.ONUE_Label:Destroy() end
                     table.remove(_G.Active_ESP_Boxes, i)
@@ -252,10 +257,10 @@ task.spawn(function()
             end
         end
         
-        -- Night Monster ESP Folder Processing Lane
+        -- Monster Tracking Stream
         if _G.Monster_ESP_Enabled then
             for _, mob in ipairs(mobPool) do
-                _G.applyTrackingESP(mob, Color3.fromRGB(255, 10, 20), "👹 Monster", true)
+                _G.applyTrackingESP(mob, Color3.fromRGB(235, 40, 40), "Target Hostile", true)
             end
         else
             for i = #_G.Active_ESP_Boxes, 1, -1 do
@@ -269,10 +274,6 @@ task.spawn(function()
         end
     end
 end)
--- =====================================================================
--- [[         PART 3: CYBER GOTH VAMPIRE ECLIPSE INTERFACE            ]]
--- =====================================================================
-
 if CoreGui:FindFirstChild("ONUMenuInterface") then
     CoreGui.ONUMenuInterface:Destroy()
 end
@@ -282,17 +283,17 @@ ScreenGui.Name = "ONUMenuInterface"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- 1. Master Floating Key Button Node
+-- 1. Minimalist Floating Command Access Portal
 local CircleToggle = Instance.new("TextButton")
-CircleToggle.Size = UDim2.new(0, 55, 0, 55)
+CircleToggle.Size = UDim2.new(0, 50, 0, 50)
 CircleToggle.Position = UDim2.new(0.05, 0, 0.4, 0)
-CircleToggle.BackgroundColor3 = Color3.fromRGB(12, 12, 12) -- Deep Onyx
-CircleToggle.BorderColor3 = Color3.fromRGB(255, 0, 40) -- Neon Cyber Red Frame Outline
-CircleToggle.BorderSizePixel = 2
+CircleToggle.BackgroundColor3 = Color3.fromRGB(24, 26, 30) -- Sleek Charcoal Titanium
+CircleToggle.BorderColor3 = Color3.fromRGB(60, 64, 72)
+CircleToggle.BorderSizePixel = 1
 CircleToggle.Text = "ONU"
-CircleToggle.Font = Enum.Font.Creepster -- Your favorite stylized lettering
-CircleToggle.TextSize = 22
-CircleToggle.TextColor3 = Color3.fromRGB(255, 0, 40) 
+CircleToggle.Font = Enum.Font.RobotoMedium
+CircleToggle.TextSize = 14
+CircleToggle.TextColor3 = Color3.fromRGB(220, 225, 230) 
 CircleToggle.Active = true
 CircleToggle.Draggable = true
 CircleToggle.Parent = ScreenGui
@@ -301,24 +302,28 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleToggle
 
--- 2. Fixed Dimension Features Frame Container (Parented directly to CircleToggle to ensure alignment)
+-- 2. Formal Management Panel Interface Matrix
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 210, 0, 145) -- EXPANDED: Spaced out to 145px to perfectly house 4 rows
-MainFrame.Position = UDim2.new(0, 65, 0, 0) 
-MainFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8) -- Solid Charcoal Black Void
-MainFrame.BorderColor3 = Color3.fromRGB(180, 0, 25) -- Neon Crimson Accents Edge Outline
-MainFrame.BorderSizePixel = 2
+MainFrame.Size = UDim2.new(0, 220, 0, 230) -- Sized perfectly to house individual resource controls cleanly
+MainFrame.Position = UDim2.new(0, 60, 0, 0) 
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 20, 24) -- Clean Slate Professional Dark Void
+MainFrame.BorderColor3 = Color3.fromRGB(44, 48, 56)
+MainFrame.BorderSizePixel = 1
 MainFrame.Visible = false 
 MainFrame.Parent = CircleToggle
 
+local PanelCorner = Instance.new("UICorner")
+PanelCorner.CornerRadius = UDim.new(0, 4)
+PanelCorner.Parent = MainFrame
+
 local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0, 4)
+Layout.Padding = UDim.new(0, 5)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local ContentContainer = Instance.new("Frame")
-ContentContainer.Size = UDim2.new(1, -12, 1, -10)
-ContentContainer.Position = UDim2.new(0, 6, 0, 5)
+ContentContainer.Size = UDim2.new(1, -16, 1, -16)
+ContentContainer.Position = UDim2.new(0, 8, 0, 8)
 ContentContainer.BackgroundTransparency = 1
 ContentContainer.Parent = MainFrame
 Layout.Parent = ContentContainer
@@ -327,33 +332,37 @@ CircleToggle.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- 3. Hardwired Button Switch Builder Factory (100x Cooler Style Layer)
+-- 3. Professional Uniform Button Construction Factory
 local function createMenuButton(cleanLabel, placementIndex, actionCallback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 31)
-    btn.BackgroundColor3 = Color3.fromRGB(18, 18, 18) -- Deep Carbon Base Plate Row
-    btn.BorderColor3 = Color3.fromRGB(45, 0, 5) -- Low-contrast maroon border outline
+    btn.Size = UDim2.new(1, 0, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(28, 32, 38) -- Uniform Row Surface Gray
+    btn.BorderColor3 = Color3.fromRGB(44, 48, 56)
     btn.BorderSizePixel = 1
-    btn.Text = " " .. cleanLabel .. " [OFF]"
-    btn.TextColor3 = Color3.fromRGB(160, 160, 160) -- Sleek Muted Gray
-    btn.Font = Enum.Font.SpecialElite -- Professional Horror Code Typography
+    btn.Text = "  " .. cleanLabel .. " : OFF"
+    btn.TextColor3 = Color3.fromRGB(150, 155, 165)
+    btn.Font = Enum.Font.Roboto
     btn.TextSize = 12
-    btn.TextXAlignment = Enum.TextXAlignment.Left -- Left-aligned for formal tables
+    btn.TextXAlignment = Enum.TextXAlignment.Left
     btn.LayoutOrder = placementIndex
+    
+    local RowCorner = Instance.new("UICorner")
+    RowCorner.CornerRadius = UDim.new(0, 3)
+    RowCorner.Parent = btn
     
     local activeToggleState = false
     btn.MouseButton1Click:Connect(function()
         activeToggleState = not activeToggleState
         if activeToggleState then
-            btn.Text = " " .. cleanLabel .. " [ON]"
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Radiant Crisp White
-            btn.BackgroundColor3 = Color3.fromRGB(35, 4, 8) -- Glowing Crimson active row state
-            btn.BorderColor3 = Color3.fromRGB(255, 20, 40) -- Neon Highlight border
+            btn.Text = "  " .. cleanLabel .. " : ACTIVE"
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.BackgroundColor3 = Color3.fromRGB(38, 45, 56) -- Elegant professional slate selection tint
+            btn.BorderColor3 = Color3.fromRGB(70, 100, 140)
         else
-            btn.Text = " " .. cleanLabel .. " [OFF]"
-            btn.TextColor3 = Color3.fromRGB(160, 160, 160)
-            btn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-            btn.BorderColor3 = Color3.fromRGB(45, 0, 5)
+            btn.Text = "  " .. cleanLabel .. " : OFF"
+            btn.TextColor3 = Color3.fromRGB(150, 155, 165)
+            btn.BackgroundColor3 = Color3.fromRGB(28, 32, 38)
+            btn.BorderColor3 = Color3.fromRGB(44, 48, 56)
         end
         actionCallback(activeToggleState)
     end)
@@ -363,12 +372,12 @@ local function createMenuButton(cleanLabel, placementIndex, actionCallback)
 end
 
 -- =====================================================================
--- [[            FIXED FORMAL COMPONENT DIRECT LINKAGE TREE           ]]
+-- [[                FORMAL INTERFACE CALL REGISTRATION               ]]
 -- =====================================================================
-createMenuButton("Item ESP Visuals", 1, function(state) _G.ESP_Enabled = state end)
-createMenuButton("ESP Monsters", 2, function(state) _G.Monster_ESP_Enabled = state end)
-createMenuButton("Speed Hack", 3, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
-createMenuButton("Fast Chop/Attack", 4, function(state) _G.AutoFarm_Trees_Enabled = state end)
-
-
+createMenuButton("Track Rocks", 1, function(state) _G.Rock_ESP_Enabled = state end)
+createMenuButton("Track Sticks", 2, function(state) _G.Stick_ESP_Enabled = state end)
+createMenuButton("Track Cherries", 3, function(state) _G.Cherry_ESP_Enabled = state end)
+createMenuButton("Track Hostiles", 4, function(state) _G.Monster_ESP_Enabled = state end)
+createMenuButton("Speed Velocity Hook", 5, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
+createMenuButton("Automated Resource Farm", 6, function(state) _G.AutoFarm_Trees_Enabled = state end)
 
