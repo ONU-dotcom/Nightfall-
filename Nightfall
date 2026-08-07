@@ -1,9 +1,17 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+-- Universal Protected UI Environment Resolution Layer
+local UISafeTarget = nil
+local success, err = pcall(function()
+    UISafeTarget = gethui()
+end)
+if not success or not UISafeTarget then
+    UISafeTarget = game:GetService("CoreGui")
+end
 
 -- Global Environment State Registers
 _G.Rock_ESP_Enabled = false
@@ -17,10 +25,10 @@ _G.Target_Speed = 55
 _G.Active_ESP_Boxes = {}
 _G.SpeedConnection = nil
 
--- Remotes Index Cache
+-- Remotes Index Cache Safely Initialized
 _G.AxeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("AxeSwingEvent")
 
--- Safe Core Global Pre-Declarations (Prevents UI execution failure drops)
+-- Safe Core Global Pre-Declarations (Prevents Frame Construction Drop Crashes)
 _G.updateSpeedHack = function() end
 _G.locateGameTargets = function() return {}, {}, {} end
 _G.applyTrackingESP = function() end
@@ -166,7 +174,7 @@ end
 -- Controlled Fast Chop Automation Processing Layer
 task.spawn(function()
     while true do
-        task.wait(0.12)
+        task.wait(0.15) -- Perfect regulated delay sequence to bypass exploit network filters
         
         if _G.AutoFarm_Trees_Enabled then
             local character = LocalPlayer.Character
@@ -270,14 +278,19 @@ task.spawn(function()
         end
     end
 end)
-if CoreGui:FindFirstChild("ONUMenuInterface") then
-    CoreGui.ONUMenuInterface:Destroy()
+-- Dynamically track the active protected UI sandbox destination folder
+local UISafeTarget = nil
+local success, err = pcall(function() UISafeTarget = gethui() end)
+if not success or not UISafeTarget then UISafeTarget = game:GetService("CoreGui") end
+
+if UISafeTarget:FindFirstChild("ONUMenuInterface") then
+    UISafeTarget.ONUMenuInterface:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ONUMenuInterface"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = UISafeTarget
 
 local CircleToggle = Instance.new("TextButton")
 CircleToggle.Size = UDim2.new(0, 50, 0, 50)
@@ -373,4 +386,3 @@ createMenuButton("Track Cherries", 3, function(state) _G.Cherry_ESP_Enabled = st
 createMenuButton("Track Hostiles", 4, function(state) _G.Monster_ESP_Enabled = state end)
 createMenuButton("Speed Velocity Hook", 5, function(state) _G.Speed_Enabled = state; _G.updateSpeedHack() end)
 createMenuButton("Automated Resource Farm", 6, function(state) _G.AutoFarm_Trees_Enabled = state end)
-
